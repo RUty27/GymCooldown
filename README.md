@@ -17,8 +17,12 @@ Every push to the default branch rebuilds and republishes the site
 automatically via `.github/workflows/deploy.yml`.
 
 > **First-time setup:** GitHub Pages has to be switched on once by hand, in
-> **Settings → Pages → Build and deployment → Source: GitHub Actions**. Until
-> that is set, the deploy job fails and the link 404s.
+> **Settings → Pages → Build and deployment → Source: GitHub Actions**. The
+> workflow cannot do this for you — creating a Pages site is an admin-only API
+> call that the Actions token is not allowed to make. Until the setting is
+> changed, the deploy job fails at `configure-pages` and the link 404s. Once it
+> is set, re-run the workflow from the Actions tab and every later push
+> deploys on its own.
 
 ## What it does
 

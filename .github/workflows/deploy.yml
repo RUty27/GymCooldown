@@ -33,11 +33,12 @@ jobs:
 
       - run: npm run build
 
-      # enablement turns Pages on via the API, so the repo does not need the
-      # setting flipped by hand before the first deploy.
+      # Pages must already be enabled for the repo with Source: GitHub Actions
+      # (Settings -> Pages). This cannot be done from here: creating a Pages
+      # site is an admin-only API call and the workflow's GITHUB_TOKEN is
+      # refused with "Resource not accessible by integration", so `enablement:
+      # true` does not help.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
