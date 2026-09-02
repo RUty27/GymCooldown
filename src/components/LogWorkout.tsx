@@ -1,4 +1,12 @@
 import { useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import {
+  calendarDaysAgo,
+  clampToNow,
+  describeSessionDate,
+  fromLocalInputValue,
+  shiftDays,
+  toLocalInputValue,
+} from '../lib/datetime';
 import type { Store } from '../hooks/useSessions';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
 import { formatWeight, fromDisplay, toDisplay } from '../lib/units';
@@ -11,12 +19,15 @@ export interface WorkoutDraft {
   setDraft: Dispatch<SetStateAction<LoggedExercise[]>>;
   notes: string;
   setNotes: (notes: string) => void;
+  /** null = stamp the time when the workout is finished. */
+  workoutDate: string | null;
+  setWorkoutDate: (date: string | null) => void;
   /** Exercise just added from a muscle's detail sheet, briefly highlighted. */
   highlightId: string | null;
 }
 
 export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutDraft }) {
-  const { draft, setDraft, notes, setNotes, highlightId } = workout;
+  const { draft, setDraft, notes, setNotes, workoutDate, setWorkoutDate, highlightId } = workout;
   const [picking, setPicking] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -41,9 +52,10 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
   const finish = () => {
     const withSets = draft.filter((d) => d.sets.length > 0);
     if (withSets.length === 0) return;
-    store.addSession(withSets, notes.trim() || undefined);
+    store.addSession(withSets, notes.trim() || undefined, workoutDate ?? undefined);
     setDraft([]);
     setNotes('');
+    setWorkoutDate(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -90,6 +102,7 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
 
       {draft.length > 0 && (
         <>
+          <WorkoutDateField value={workoutDate} onChange={setWorkoutDate} />
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -123,6 +136,72 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
         />
       )}
     </div>
+  );
+}
+
+/**
+ * When the workout happened. Defaults to now, with one tap for "yesterday"
+ * (logging the morning after is the common case) and a full picker for
+ * anything else. Capped at the present, since a future-dated session would be
+ * skipped by the recovery calculations.
+ */
+function WorkoutDateField({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (date: string | null) => void;
+}) {
+  const id = useId();
+  const now = new Date().toISOString();
+  const effective = value ?? now;
+  const isToday = calendarDaysAgo(effective) === 0;
+  const isYesterday = calendarDaysAgo(effective) === 1;
+
+  return (
+    <section className="rounded-lg border border-edge bg-panel p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <label htmlFor={id} className="text-xs text-slate-500">
+          When was this workout?
+        </label>
+        <span className="text-xs text-slate-400">{describeSessionDate(effective)}</span>
+      </div>
+
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={() => onChange(null)}
+          className={`flex-1 rounded-md border py-1.5 text-xs ${
+            value === null || isToday
+              ? 'border-sky-600 bg-sky-900/40 text-sky-300'
+              : 'border-edge text-slate-400'
+          }`}
+        >
+          Today
+        </button>
+        <button
+          onClick={() => onChange(clampToNow(shiftDays(new Date().toISOString(), -1)))}
+          className={`flex-1 rounded-md border py-1.5 text-xs ${
+            value !== null && isYesterday
+              ? 'border-sky-600 bg-sky-900/40 text-sky-300'
+              : 'border-edge text-slate-400'
+          }`}
+        >
+          Yesterday
+        </button>
+      </div>
+
+      <input
+        id={id}
+        type="datetime-local"
+        value={toLocalInputValue(effective)}
+        max={toLocalInputValue(now)}
+        onChange={(e) => {
+          const iso = fromLocalInputValue(e.target.value);
+          onChange(iso ? clampToNow(iso) : null);
+        }}
+        className="mt-2 w-full rounded-md border border-edge bg-ink/60 px-3 py-2 text-sm text-slate-100"
+      />
+    </section>
   );
 }
 

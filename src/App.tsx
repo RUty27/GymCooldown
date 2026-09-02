@@ -24,6 +24,8 @@ export default function App() {
   // tab for what is recovered, or log from a sore muscle, without losing it.
   const [draft, setDraft] = useState<LoggedExercise[]>([]);
   const [notes, setNotes] = useState('');
+  // null means "stamp it when I finish"; a value means a deliberately chosen date.
+  const [workoutDate, setWorkoutDate] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
   // Tapping an exercise on a muscle's detail sheet drops it into today's
@@ -55,7 +57,7 @@ export default function App() {
         {tab === 'log' && (
           <LogWorkout
             store={store}
-            workout={{ draft, setDraft, notes, setNotes, highlightId }}
+            workout={{ draft, setDraft, notes, setNotes, workoutDate, setWorkoutDate, highlightId }}
           />
         )}
         {tab === 'body' && <BodyHeatmap store={store} onLogExercise={logExercise} />}

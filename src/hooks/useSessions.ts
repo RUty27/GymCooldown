@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EXERCISES } from '../data/exercises';
+import { clampToNow } from '../lib/datetime';
 import { emptyData, loadData, saveData } from '../lib/storage';
 import type { AppData, Exercise, LoggedExercise, Session, Unit } from '../types';
 
@@ -7,7 +8,7 @@ export interface Store {
   data: AppData;
   exercises: Exercise[];
   lookup: (id: string) => Exercise | undefined;
-  addSession: (exercises: LoggedExercise[], notes?: string) => void;
+  addSession: (exercises: LoggedExercise[], notes?: string, date?: string) => void;
   updateSession: (id: string, patch: Partial<Omit<Session, 'id'>>) => void;
   deleteSession: (id: string) => void;
   setUnit: (unit: Unit) => void;
@@ -37,15 +38,21 @@ export function useSessions(): Store {
 
   const lookup = useCallback((id: string) => byId.get(id), [byId]);
 
-  const addSession = useCallback((loggedExercises: LoggedExercise[], notes?: string) => {
-    const session: Session = {
-      id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-      date: new Date().toISOString(),
-      exercises: loggedExercises,
-      notes,
-    };
-    setData((d) => ({ ...d, sessions: [session, ...d.sessions] }));
-  }, []);
+  const addSession = useCallback(
+    (loggedExercises: LoggedExercise[], notes?: string, date?: string) => {
+      const session: Session = {
+        id: `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+        // Backdating is allowed, but never into the future: the volume and
+        // recovery calculations skip sessions dated after now, so one would
+        // save and then be invisible on the body map.
+        date: clampToNow(date ?? new Date().toISOString()),
+        exercises: loggedExercises,
+        notes,
+      };
+      setData((d) => ({ ...d, sessions: [session, ...d.sessions] }));
+    },
+    [],
+  );
 
   const updateSession = useCallback((id: string, patch: Partial<Omit<Session, 'id'>>) => {
     setData((d) => ({

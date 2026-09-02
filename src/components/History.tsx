@@ -1,8 +1,43 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import {
+  clampToNow,
+  describeSessionDate,
+  fromLocalInputValue,
+  toLocalInputValue,
+} from '../lib/datetime';
 import type { Store } from '../hooks/useSessions';
 import { formatWeight, toDisplay } from '../lib/units';
 import { exerciseTonnage, sessionVolumeByMuscle } from '../lib/volume';
 import { MUSCLE_LABELS, type MuscleGroup } from '../types';
+
+/** Correct the date of a session already saved — logged a day late, or on the wrong day. */
+function SessionDateEditor({
+  date,
+  onChange,
+}: {
+  date: string;
+  onChange: (iso: string) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="mt-3 border-t border-edge pt-3">
+      <label htmlFor={id} className="block text-xs text-slate-500">
+        Change the date of this workout
+      </label>
+      <input
+        id={id}
+        type="datetime-local"
+        value={toLocalInputValue(date)}
+        max={toLocalInputValue(new Date().toISOString())}
+        onChange={(e) => {
+          const iso = fromLocalInputValue(e.target.value);
+          if (iso) onChange(clampToNow(iso));
+        }}
+        className="mt-1.5 w-full rounded-md border border-edge bg-ink/60 px-3 py-2 text-sm text-slate-100"
+      />
+    </div>
+  );
+}
 
 export function History({ store }: { store: Store }) {
   const [open, setOpen] = useState<string | null>(null);
@@ -42,11 +77,7 @@ export function History({ store }: { store: Store }) {
             >
               <span className="min-w-0">
                 <span className="block text-sm font-medium text-slate-100">
-                  {new Date(s.date).toLocaleDateString(undefined, {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
+                  {describeSessionDate(s.date)}
                 </span>
                 <span className="block truncate text-xs text-slate-500">
                   {top.join(' · ') || 'No muscles matched'}
@@ -78,6 +109,12 @@ export function History({ store }: { store: Store }) {
                   })}
                 </ul>
                 {s.notes && <p className="mt-2 text-xs italic text-slate-400">{s.notes}</p>}
+
+                <SessionDateEditor
+                  date={s.date}
+                  onChange={(iso) => store.updateSession(s.id, { date: iso })}
+                />
+
                 <button
                   onClick={() => {
                     if (confirm('Delete this session? This cannot be undone.')) {
