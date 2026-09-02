@@ -3,7 +3,22 @@
 A local-first web app for logging gym sessions, seeing which muscles are still
 recovering, and getting a recommended rest time before you train them again.
 
-Install it to your phone's home screen and it works offline in the gym.
+## Open it
+
+**https://ruty27.github.io/GymCooldown/**
+
+Add it to your phone's home screen and it runs full-screen and offline, so it
+works in a gym basement with no signal:
+
+- **iPhone (Safari)** — open the link, tap Share, then *Add to Home Screen*.
+- **Android (Chrome)** — open the link, tap the ⋮ menu, then *Install app*.
+
+Every push to the default branch rebuilds and republishes the site
+automatically via `.github/workflows/deploy.yml`.
+
+> **First-time setup:** GitHub Pages has to be switched on once by hand, in
+> **Settings → Pages → Build and deployment → Source: GitHub Actions**. Until
+> that is set, the deploy job fails and the link 404s.
 
 ## What it does
 
@@ -65,9 +80,11 @@ npm run build     # production build into dist/
 npm run preview   # serve the production build
 ```
 
-`dist/` is a static bundle — deploy it to any static host (Netlify, Vercel,
-GitHub Pages, a plain nginx root). Serve it over HTTPS so the service worker
-registers and the app becomes installable.
+`dist/` is a static bundle. It is built for the `/GymCooldown/` subpath that
+GitHub Pages serves a project site from — that path is set once as `BASE` in
+`vite.config.ts`, so change it there if you rename the repo or host at a domain
+root. Serve over HTTPS so the service worker registers and the app becomes
+installable.
 
 ## Project layout
 
