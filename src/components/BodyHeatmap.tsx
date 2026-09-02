@@ -12,7 +12,13 @@ import { formatRestRemaining, muscleStatus, type MuscleStatus } from '../lib/rec
 import type { Store } from '../hooks/useSessions';
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type MuscleGroup } from '../types';
 
-export function BodyHeatmap({ store }: { store: Store }) {
+export function BodyHeatmap({
+  store,
+  onLogExercise,
+}: {
+  store: Store;
+  onLogExercise: (exerciseId: string) => void;
+}) {
   const [mode, setMode] = useState<HeatmapMode>('recovery');
   const [selected, setSelected] = useState<MuscleGroup | null>(null);
 
@@ -78,7 +84,9 @@ export function BodyHeatmap({ store }: { store: Store }) {
           </div>
         </div>
 
-        <p className="mt-2 text-center text-xs text-slate-500">Tap a muscle for detail</p>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          Tap a muscle for detail, or to log what made it sore
+        </p>
 
         <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-edge pt-3">
           {legend.map((entry) => (
@@ -166,6 +174,10 @@ export function BodyHeatmap({ store }: { store: Store }) {
           muscle={selected}
           status={statuses[selected]}
           store={store}
+          onLogExercise={(id) => {
+            setSelected(null);
+            onLogExercise(id);
+          }}
           onClose={() => setSelected(null)}
         />
       )}

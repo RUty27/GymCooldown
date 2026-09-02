@@ -1,4 +1,4 @@
-import { EXERCISES } from '../data/exercises';
+import { useMemo } from 'react';
 import type { Store } from '../hooks/useSessions';
 import { recoveryColor, recoveryLabel } from '../lib/palette';
 import { formatRestRemaining, formatSinceLast, type MuscleStatus } from '../lib/recovery';
@@ -9,11 +9,13 @@ export function MuscleDetailSheet({
   muscle,
   status,
   store,
+  onLogExercise,
   onClose,
 }: {
   muscle: MuscleGroup;
   status: MuscleStatus;
   store: Store;
+  onLogExercise: (exerciseId: string) => void;
   onClose: () => void;
 }) {
   const weeklySets = setsInWindow(store.data.sessions, store.lookup, muscle, 7);
@@ -32,7 +34,14 @@ export function MuscleDetailSheet({
         .map((ex) => ex.name)
     : [];
 
-  const suggestions = EXERCISES.filter((e) => e.primary.includes(muscle)).slice(0, 4);
+  // Everything that trains this muscle, split by how directly it hits it.
+  const trains = useMemo(
+    () => ({
+      direct: store.exercises.filter((e) => e.primary.includes(muscle)),
+      indirect: store.exercises.filter((e) => e.secondary.includes(muscle)),
+    }),
+    [store.exercises, muscle],
+  );
 
   return (
     <div
@@ -98,20 +107,63 @@ export function MuscleDetailSheet({
         )}
 
         <section className="mt-4">
-          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Exercises that train this
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Sore from what? Log it
           </h3>
-          <p className="text-sm text-slate-300">{suggestions.map((e) => e.name).join(', ')}</p>
+          <p className="mb-2 mt-0.5 text-xs text-slate-500">
+            Tap what you did and it goes straight into today's workout.
+          </p>
+
+          <div className="space-y-1">
+            {trains.direct.map((ex) => (
+              <ExerciseButton key={ex.id} name={ex.name} equipment={ex.equipment} onClick={() => onLogExercise(ex.id)} />
+            ))}
+          </div>
+
+          {trains.indirect.length > 0 && (
+            <details className="mt-2 rounded-lg border border-edge">
+              <summary className="cursor-pointer px-3 py-2 text-xs text-slate-400">
+                Also works it indirectly ({trains.indirect.length})
+              </summary>
+              <div className="space-y-1 border-t border-edge p-2">
+                {trains.indirect.map((ex) => (
+                  <ExerciseButton key={ex.id} name={ex.name} equipment={ex.equipment} onClick={() => onLogExercise(ex.id)} />
+                ))}
+              </div>
+            </details>
+          )}
         </section>
 
         <button
           onClick={onClose}
-          className="mt-5 w-full rounded-lg bg-slate-100 py-2.5 font-medium text-slate-900"
+          className="mt-5 w-full rounded-lg border border-edge py-2.5 font-medium text-slate-300"
         >
           Close
         </button>
       </div>
     </div>
+  );
+}
+
+function ExerciseButton({
+  name,
+  equipment,
+  onClick,
+}: {
+  name: string;
+  equipment: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-3 rounded-lg border border-edge bg-ink/60 px-3 py-2.5 text-left active:bg-slate-700"
+    >
+      <span className="min-w-0 truncate text-sm text-slate-100">{name}</span>
+      <span className="shrink-0 rounded-full border border-edge px-2 py-0.5 text-[10px] uppercase text-slate-500">
+        {equipment}
+      </span>
+    </button>
   );
 }
 

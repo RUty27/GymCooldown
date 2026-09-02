@@ -1,14 +1,23 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { Store } from '../hooks/useSessions';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
 import { formatWeight, fromDisplay, toDisplay } from '../lib/units';
 import { exerciseTonnage } from '../lib/volume';
 import { MUSCLE_LABELS, type Exercise, type LoggedExercise, type SetEntry } from '../types';
 
-export function LogWorkout({ store }: { store: Store }) {
-  const [draft, setDraft] = useState<LoggedExercise[]>([]);
+/** The in-progress workout, owned by App so it survives tab switches. */
+export interface WorkoutDraft {
+  draft: LoggedExercise[];
+  setDraft: Dispatch<SetStateAction<LoggedExercise[]>>;
+  notes: string;
+  setNotes: (notes: string) => void;
+  /** Exercise just added from a muscle's detail sheet, briefly highlighted. */
+  highlightId: string | null;
+}
+
+export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutDraft }) {
+  const { draft, setDraft, notes, setNotes, highlightId } = workout;
   const [picking, setPicking] = useState(false);
-  const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState(false);
 
   const unit = store.data.settings.unit;
@@ -65,6 +74,7 @@ export function LogWorkout({ store }: { store: Store }) {
             logged={logged}
             unit={unit}
             store={store}
+            highlight={highlightId === logged.exerciseId}
             onChange={(sets) => updateSets(logged.exerciseId, sets)}
             onRemove={() => removeExercise(logged.exerciseId)}
           />
@@ -121,6 +131,7 @@ function ExerciseCard({
   logged,
   unit,
   store,
+  highlight,
   onChange,
   onRemove,
 }: {
@@ -128,6 +139,7 @@ function ExerciseCard({
   logged: LoggedExercise;
   unit: 'kg' | 'lb';
   store: Store;
+  highlight: boolean;
   onChange: (sets: SetEntry[]) => void;
   onRemove: () => void;
 }) {
@@ -147,7 +159,14 @@ function ExerciseCard({
     onChange([...logged.sets, { reps, weight: fromDisplay(weight, unit) }]);
 
   return (
-    <section className="rounded-xl border border-edge bg-panel p-3">
+    <section
+      className={`rounded-xl border bg-panel p-3 transition-colors ${
+        highlight ? 'border-sky-500 ring-1 ring-sky-500/40' : 'border-edge'
+      }`}
+    >
+      {highlight && (
+        <p className="mb-2 text-xs text-sky-400">Added from the body map — add your sets</p>
+      )}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate font-semibold text-slate-100">{exercise.name}</h3>
