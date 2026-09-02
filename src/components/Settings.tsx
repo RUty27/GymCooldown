@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Store } from '../hooks/useSessions';
+import { clearPhotos } from '../lib/photos';
 import { parseData } from '../lib/storage';
 import type { Unit } from '../types';
 
@@ -58,6 +59,8 @@ export function SettingsTab({ store }: { store: Store }) {
         <p className="mb-3 text-xs text-slate-500">
           Everything is stored on this device only — nothing is uploaded. Clearing
           your browser data will erase it, so export a backup now and then.
+          Machine photos are kept separately on the device and are not part of
+          the JSON backup.
         </p>
         <div className="space-y-2">
           <button
@@ -85,8 +88,9 @@ export function SettingsTab({ store }: { store: Store }) {
           />
           <button
             onClick={() => {
-              if (confirm('Erase all sessions and settings? This cannot be undone.')) {
+              if (confirm('Erase all sessions, settings and machine photos? This cannot be undone.')) {
                 store.clearAll();
+                void clearPhotos();
                 setMessage('All data cleared.');
               }
             }}

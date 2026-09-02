@@ -8,6 +8,8 @@ import {
   toLocalInputValue,
 } from '../lib/datetime';
 import type { Store } from '../hooks/useSessions';
+import { ExercisePhoto } from './ExercisePhoto';
+import { VoiceLogger, isVoiceSupported } from './VoiceLogger';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
 import { formatWeight, fromDisplay, toDisplay } from '../lib/units';
 import { exerciseTonnage } from '../lib/volume';
@@ -29,6 +31,7 @@ export interface WorkoutDraft {
 export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutDraft }) {
   const { draft, setDraft, notes, setNotes, workoutDate, setWorkoutDate, highlightId } = workout;
   const [picking, setPicking] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const unit = store.data.settings.unit;
@@ -48,6 +51,23 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
 
   const removeExercise = (exerciseId: string) =>
     setDraft((d) => d.filter((x) => x.exerciseId !== exerciseId));
+
+  /** Merge voice-parsed exercises in, appending sets to anything already logged. */
+  const addFromVoice = (entries: LoggedExercise[]) => {
+    setSpeaking(false);
+    setDraft((d) => {
+      const next = [...d];
+      for (const entry of entries) {
+        const existing = next.findIndex((x) => x.exerciseId === entry.exerciseId);
+        if (existing >= 0) {
+          next[existing] = { ...next[existing], sets: [...next[existing].sets, ...entry.sets] };
+        } else {
+          next.push(entry);
+        }
+      }
+      return next;
+    });
+  };
 
   const finish = () => {
     const withSets = draft.filter((d) => d.sets.length > 0);
@@ -93,12 +113,23 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
         );
       })}
 
-      <button
-        onClick={() => setPicking(true)}
-        className="w-full rounded-lg border border-edge bg-panel py-3 font-medium text-slate-200"
-      >
-        + Add exercise
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setPicking(true)}
+          className="flex-1 rounded-lg border border-edge bg-panel py-3 font-medium text-slate-200"
+        >
+          + Add exercise
+        </button>
+        {isVoiceSupported() && (
+          <button
+            onClick={() => setSpeaking(true)}
+            aria-label="Log by voice"
+            className="shrink-0 rounded-lg border border-edge bg-panel px-4 py-3 text-lg"
+          >
+            🎤
+          </button>
+        )}
+      </div>
 
       {draft.length > 0 && (
         <>
@@ -125,6 +156,10 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
             Finish workout
           </button>
         </>
+      )}
+
+      {speaking && (
+        <VoiceLogger store={store} onApply={addFromVoice} onClose={() => setSpeaking(false)} />
       )}
 
       {picking && (
@@ -261,6 +296,8 @@ function ExerciseCard({
           ✕
         </button>
       </div>
+
+      <ExercisePhoto exerciseId={exercise.id} exerciseName={exercise.name} />
 
       <p className="mt-2 rounded-md bg-ink/60 px-2 py-1.5 text-xs text-slate-400">
         Rest ~<span className="font-medium text-slate-200">{rest.label}</span> between sets ·{' '}
