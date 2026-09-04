@@ -12,6 +12,10 @@ export interface Store {
   updateSession: (id: string, patch: Partial<Omit<Session, 'id'>>) => void;
   deleteSession: (id: string) => void;
   setUnit: (unit: Unit) => void;
+  addCustomExercise: (exercise: Omit<Exercise, 'id'>) => Exercise;
+  deleteCustomExercise: (id: string) => void;
+  /** How many saved sessions reference an exercise — used to warn before deleting one. */
+  sessionsUsing: (exerciseId: string) => number;
   replaceAll: (data: AppData) => void;
   clearAll: () => void;
   /** The most recent logged instance of an exercise, for showing last time's numbers. */
@@ -69,6 +73,26 @@ export function useSessions(): Store {
     setData((d) => ({ ...d, settings: { ...d.settings, unit } }));
   }, []);
 
+  const addCustomExercise = useCallback((exercise: Omit<Exercise, 'id'>) => {
+    const slug = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const created: Exercise = {
+      ...exercise,
+      id: `custom-${slug || 'exercise'}-${Math.random().toString(36).slice(2, 6)}`,
+    };
+    setData((d) => ({ ...d, customExercises: [...d.customExercises, created] }));
+    return created;
+  }, []);
+
+  const deleteCustomExercise = useCallback((id: string) => {
+    setData((d) => ({ ...d, customExercises: d.customExercises.filter((e) => e.id !== id) }));
+  }, []);
+
+  const sessionsUsing = useCallback(
+    (exerciseId: string) =>
+      data.sessions.filter((s) => s.exercises.some((e) => e.exerciseId === exerciseId)).length,
+    [data.sessions],
+  );
+
   const replaceAll = useCallback((next: AppData) => setData(next), []);
   const clearAll = useCallback(() => setData(emptyData()), []);
 
@@ -94,6 +118,9 @@ export function useSessions(): Store {
     updateSession,
     deleteSession,
     setUnit,
+    addCustomExercise,
+    deleteCustomExercise,
+    sessionsUsing,
     replaceAll,
     clearAll,
     lastPerformance,

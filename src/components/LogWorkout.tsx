@@ -8,6 +8,7 @@ import {
   toLocalInputValue,
 } from '../lib/datetime';
 import type { Store } from '../hooks/useSessions';
+import { CustomExerciseForm } from './CustomExerciseForm';
 import { ExercisePhoto } from './ExercisePhoto';
 import { VoiceLogger, isVoiceSupported } from './VoiceLogger';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
@@ -416,6 +417,7 @@ function ExercisePicker({
   alreadyAdded: string[];
 }) {
   const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -444,7 +446,9 @@ function ExercisePicker({
       </div>
       <ul className="flex-1 overflow-y-auto">
         {results.length === 0 && (
-          <li className="p-6 text-center text-sm text-slate-500">No matches.</li>
+          <li className="p-6 text-center text-sm text-slate-500">
+            No matches — your gym may call it something else.
+          </li>
         )}
         {results.map((e) => (
           <li key={e.id}>
@@ -465,7 +469,27 @@ function ExercisePicker({
             </button>
           </li>
         ))}
+        <li className="p-3">
+          <button
+            onClick={() => setCreating(true)}
+            className="w-full rounded-lg border border-dashed border-edge py-3 text-sm text-slate-300"
+          >
+            + Add {query.trim() ? `“${query.trim()}”` : 'a machine from your gym'}
+          </button>
+        </li>
       </ul>
+
+      {creating && (
+        <CustomExerciseForm
+          store={store}
+          initialName={query.trim()}
+          onCreated={(ex) => {
+            setCreating(false);
+            onPick(ex);
+          }}
+          onClose={() => setCreating(false)}
+        />
+      )}
     </div>
   );
 }

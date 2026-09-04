@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { Store } from '../hooks/useSessions';
 import { clearPhotos } from '../lib/photos';
 import { parseData } from '../lib/storage';
-import type { Unit } from '../types';
+import { MUSCLE_LABELS, type Unit } from '../types';
 
 export function SettingsTab({ store }: { store: Store }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -100,6 +100,47 @@ export function SettingsTab({ store }: { store: Store }) {
           </button>
         </div>
         {message && <p className="mt-3 text-sm text-slate-300">{message}</p>}
+      </Section>
+
+      <Section title={`Your own exercises (${store.data.customExercises.length})`}>
+        {store.data.customExercises.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            None yet. When a machine at your gym is not in the list, add it from the
+            search screen on the Log tab.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {store.data.customExercises.map((ex) => {
+              const used = store.sessionsUsing(ex.id);
+              return (
+                <li
+                  key={ex.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-edge bg-ink/60 px-3 py-2"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm text-slate-100">{ex.name}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {ex.primary.map((m) => MUSCLE_LABELS[m]).join(' · ')}
+                      {used > 0 && ` · used in ${used} session${used === 1 ? '' : 's'}`}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      const warning =
+                        used > 0
+                          ? `Delete "${ex.name}"? ${used} saved session${used === 1 ? '' : 's'} use it, and those entries will no longer count towards your muscle tracking.`
+                          : `Delete "${ex.name}"?`;
+                      if (confirm(warning)) store.deleteCustomExercise(ex.id);
+                    }}
+                    className="shrink-0 rounded px-2 py-1 text-xs text-slate-500 hover:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Section>
 
       <Section title="About the rest recommendations">
