@@ -90,6 +90,14 @@ describe('parseWorkoutSpeech', () => {
     expect(parse('bench 3 of 10 at 60').entries[0].exerciseId).toBe('bench-press');
   });
 
+  it('matches machine names that contain a shorter exercise name', () => {
+    // "low row" must win over the bare "row" alias for barbell row
+    const r = parse('low row 3 sets of 12 at 40');
+    expect(r.entries).toHaveLength(1);
+    expect(r.entries[0].exerciseId).toBe('low-row');
+    expect(r.entries[0].sets[0]).toEqual({ reps: 12, weight: 40 });
+  });
+
   it('understands spoken number words', () => {
     const r = parse('lat pulldown three sets of twelve at fifty kilos');
     expect(r.entries[0].exerciseId).toBe('lat-pulldown');

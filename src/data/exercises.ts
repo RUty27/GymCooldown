@@ -25,6 +25,7 @@ export const EXERCISES: Exercise[] = [
   { id: 'barbell-row', name: 'Barbell Row', equipment: 'barbell', primary: ['lats', 'traps'], secondary: ['biceps', 'rear-delts', 'lower-back'], compound: true },
   { id: 'db-row', name: 'One-Arm Dumbbell Row', equipment: 'dumbbell', primary: ['lats'], secondary: ['biceps', 'traps', 'rear-delts'], compound: true },
   { id: 'seated-cable-row', name: 'Seated Cable Row', equipment: 'cable', primary: ['lats', 'traps'], secondary: ['biceps', 'rear-delts'], compound: true },
+  { id: 'low-row', name: 'Low Row', equipment: 'cable', primary: ['lats', 'traps'], secondary: ['biceps', 'rear-delts', 'lower-back'], compound: true },
   { id: 't-bar-row', name: 'T-Bar Row', equipment: 'machine', primary: ['lats', 'traps'], secondary: ['biceps', 'rear-delts'], compound: true },
   { id: 'fixed-pulldown', name: 'Fixed Pulldown', equipment: 'machine', primary: ['lats'], secondary: ['biceps', 'rear-delts', 'traps'], compound: true },
   { id: 'straight-arm-pulldown', name: 'Straight-Arm Pulldown', equipment: 'cable', primary: ['lats'], secondary: [], compound: false },
