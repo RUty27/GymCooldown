@@ -13,13 +13,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'fonts/*.woff2'],
+      // The default precache globs omit woff2, which would leave the
+      // self-hosted fonts uncached and the app unstyled offline.
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      },
       manifest: {
         name: 'GymCooldown',
         short_name: 'GymCooldown',
         description: 'Log your lifts, track muscle recovery, and see what you have trained.',
-        theme_color: '#0b0f14',
-        background_color: '#0b0f14',
+        theme_color: '#f5ead8',
+        background_color: '#f5ead8',
         display: 'standalone',
         orientation: 'portrait',
         id: BASE,

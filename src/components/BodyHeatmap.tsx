@@ -1,33 +1,40 @@
 import { useMemo, useState } from 'react';
-import { BodyBack, BodyFront } from './BodySvg';
-import { MuscleDetailSheet } from './MuscleDetailSheet';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import type { Store } from '../hooks/useSessions';
 import {
-  RECOVERY_LEGEND,
-  VOLUME_LEGEND,
   recoveryColor,
+  recoveryLabel,
+  recoveryLegend,
   volumeColor,
+  volumeLegend,
   type HeatmapMode,
+  type Theme,
 } from '../lib/palette';
 import { formatRestRemaining, muscleStatus, type MuscleStatus } from '../lib/recovery';
-import type { Store } from '../hooks/useSessions';
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type MuscleGroup } from '../types';
+import { BodyBack, BodyFront } from './BodySvg';
+import { MuscleDetailSheet } from './MuscleDetailSheet';
+import { Segmented } from './ui';
 
 export function BodyHeatmap({
   store,
+  theme,
   onLogExercise,
 }: {
   store: Store;
+  theme: Theme;
   onLogExercise: (exerciseId: string) => void;
 }) {
+  const wide = useMediaQuery('(min-width: 1024px)');
   const [mode, setMode] = useState<HeatmapMode>('recovery');
+  const [side, setSide] = useState<'front' | 'back'>('front');
   const [selected, setSelected] = useState<MuscleGroup | null>(null);
+  const [sheetFor, setSheetFor] = useState<MuscleGroup | null>(null);
 
   const statuses = useMemo(() => {
     const now = Date.now();
     const map = {} as Record<MuscleGroup, MuscleStatus>;
-    for (const m of MUSCLE_GROUPS) {
-      map[m] = muscleStatus(m, store.data.sessions, store.lookup, now);
-    }
+    for (const m of MUSCLE_GROUPS) map[m] = muscleStatus(m, store.data.sessions, store.lookup, now);
     return map;
   }, [store.data.sessions, store.lookup]);
 
@@ -38,160 +45,211 @@ export function BodyHeatmap({
 
   const fillFor = (m: MuscleGroup) =>
     mode === 'recovery'
-      ? recoveryColor(statuses[m])
-      : volumeColor(statuses[m].weeklyVolume, scaleMax);
+      ? recoveryColor(statuses[m], theme)
+      : volumeColor(statuses[m].weeklyVolume, scaleMax, theme);
 
-  const legend = mode === 'recovery' ? RECOVERY_LEGEND : VOLUME_LEGEND;
+  const legend = mode === 'recovery' ? recoveryLegend(theme) : volumeLegend(theme);
+  const resting = MUSCLE_GROUPS.filter((m) => statuses[m].state === 'recovering');
+  const ready = MUSCLE_GROUPS.length - resting.length;
 
-  const recovering = MUSCLE_GROUPS.filter((m) => statuses[m].state === 'recovering');
-  const readyBig = MUSCLE_GROUPS.filter((m) => statuses[m].state !== 'recovering');
+  // Most rest needed first — the muscles you must not train today.
+  const sorted = [...MUSCLE_GROUPS].sort(
+    (a, b) => statuses[a].recoveryPct - statuses[b].recoveryPct,
+  );
 
-  const bodyProps = { fillFor, onSelect: setSelected, selected };
+  // Tapping a region both highlights its card and opens the detail sheet, as it
+  // did before the redesign.
+  const selectMuscle = (m: MuscleGroup) => {
+    setSelected(m);
+    setSheetFor(m);
+  };
+
+  const bodyProps = { fillFor, onSelect: selectMuscle, selected, theme };
+  const Figure = side === 'front' ? BodyFront : BodyBack;
 
   return (
-    <div className="space-y-4 pb-4">
-      <div className="flex rounded-lg border border-edge bg-panel p-1 text-sm">
-        {(['recovery', 'volume'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex-1 rounded-md px-3 py-2 font-medium capitalize transition-colors ${
-              mode === m ? 'bg-slate-100 text-slate-900' : 'text-slate-400'
-            }`}
-          >
-            {m === 'recovery' ? 'Recovery' : 'Weekly volume'}
-          </button>
-        ))}
+    <div className="px-4 pb-4 lg:px-[30px] lg:pb-7">
+      <header className="px-1 pb-3 pt-[18px] lg:pt-7">
+        <h1 className="font-display text-[24px]">Body</h1>
+        <p className="text-[12px] text-[color:var(--muted)]">
+          {resting.length} muscle{resting.length === 1 ? '' : 's'} still resting · {ready} ready
+        </p>
+      </header>
+
+      <Segmented
+        ariaLabel="Heatmap mode"
+        value={mode}
+        onChange={setMode}
+        options={[
+          { value: 'recovery', label: 'Recovery' },
+          { value: 'volume', label: 'Volume' },
+        ]}
+      />
+
+      <div className="relative mt-3 rounded-card bg-surface p-4">
+        {/* Wide screens show both figures at once; phones toggle between them.
+            Only the layout in use is mounted, so there is one figure in the DOM. */}
+        {wide ? (
+          <div className="grid grid-cols-2 gap-4">
+            <FigurePane label="Front">
+              <BodyFront {...bodyProps} />
+            </FigurePane>
+            <FigurePane label="Back">
+              <BodyBack {...bodyProps} />
+            </FigurePane>
+          </div>
+        ) : (
+          <>
+            <div className="mx-auto h-[min(58vh,520px)]">
+              <Figure {...bodyProps} />
+            </div>
+            <div className="mt-2 flex justify-center">
+              <div className="flex gap-1 rounded-full bg-bg p-1 shadow-md">
+                {(['front', 'back'] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSide(s)}
+                    aria-pressed={side === s}
+                    className={`rounded-full px-[22px] py-2 text-[14px] capitalize transition-colors duration-100 ${
+                      side === s ? 'font-display bg-ink text-bg' : 'text-[color:var(--muted)]'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="absolute right-4 top-4 rounded-[20px] bg-bg px-3 py-[10px] shadow-sm">
+          <ul className="flex flex-col gap-1.5">
+            {legend.map((e) => (
+              <li key={e.label} className="flex items-center gap-2 text-[11px]">
+                <span
+                  className="inline-block h-[11px] w-[11px] rounded-full"
+                  style={{ backgroundColor: e.color }}
+                />
+                {e.label}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
-      <div className="rounded-xl border border-edge bg-panel p-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p className="mb-1 text-center text-xs uppercase tracking-wide text-slate-500">
-              Front
-            </p>
-            <div className="h-[300px]">
-              <BodyFront {...bodyProps} />
-            </div>
-          </div>
-          <div>
-            <p className="mb-1 text-center text-xs uppercase tracking-wide text-slate-500">
-              Back
-            </p>
-            <div className="h-[300px]">
-              <BodyBack {...bodyProps} />
-            </div>
-          </div>
-        </div>
+      <p className="mt-3 px-1 text-[11px] uppercase tracking-[.1em] text-[color:var(--muted)]">
+        {mode === 'recovery' ? 'Sorted by rest remaining' : 'Volume load, last 7 days'}
+      </p>
 
-        <p className="mt-2 text-center text-xs text-slate-500">
-          Tap a muscle for detail, or to log what made it sore
-        </p>
-
-        <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-edge pt-3">
-          {legend.map((entry) => (
-            <span key={entry.label} className="flex items-center gap-1.5 text-xs text-slate-300">
-              <span
-                className="inline-block h-3 w-3 rounded-sm border border-edge"
-                style={{ backgroundColor: entry.color }}
-              />
-              {entry.label}
-            </span>
+      {mode === 'recovery' ? (
+        <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-2">
+          {sorted.map((m) => (
+            <MuscleCard
+              key={m}
+              muscle={m}
+              status={statuses[m]}
+              theme={theme}
+              selected={selected === m}
+              onClick={() => {
+                setSelected(m);
+                setSheetFor(m);
+              }}
+            />
           ))}
         </div>
-      </div>
-
-      {mode === 'recovery' && (
-        <div className="space-y-3">
-          <Panel title={`Still resting (${recovering.length})`}>
-            {recovering.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                Nothing is mid-recovery — you are clear to train anything.
-              </p>
-            ) : (
-              <ul className="space-y-1.5">
-                {recovering
-                  .sort((a, b) => statuses[a].recoveryPct - statuses[b].recoveryPct)
-                  .map((m) => (
-                    <li key={m} className="flex items-center justify-between gap-2 text-sm">
-                      <button
-                        className="text-left text-slate-200 underline-offset-2 hover:underline"
-                        onClick={() => setSelected(m)}
-                      >
-                        {MUSCLE_LABELS[m]}
-                      </button>
-                      <span className="shrink-0 text-xs text-amber-300">
-                        {formatRestRemaining(statuses[m])}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title={`Ready to train (${readyBig.length})`}>
-            <div className="flex flex-wrap gap-1.5">
-              {readyBig.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setSelected(m)}
-                  className={`rounded-full border px-2.5 py-1 text-xs ${
-                    statuses[m].state === 'undertrained'
-                      ? 'border-slate-600 bg-slate-700/40 text-slate-300'
-                      : 'border-green-700 bg-green-900/40 text-green-300'
-                  }`}
-                >
-                  {MUSCLE_LABELS[m]}
-                  {statuses[m].state === 'undertrained' && ' · stale'}
-                </button>
+      ) : (
+        <table className="mt-2 w-full">
+          <thead>
+            <tr className="border-b border-[color:var(--divider)]">
+              <th className="eyebrow py-1.5 text-left font-normal">Muscle</th>
+              <th className="eyebrow py-1.5 text-right font-normal">Volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...MUSCLE_GROUPS]
+              .sort((a, b) => statuses[b].weeklyVolume - statuses[a].weeklyVolume)
+              .map((m) => (
+                <tr key={m} className="border-b border-[color:var(--row-line)] last:border-0">
+                  <td className="py-2 text-[14px]">{MUSCLE_LABELS[m]}</td>
+                  <td className="py-2 text-right text-[14px] tabular-nums text-[color:var(--muted)]">
+                    {Math.round(statuses[m].weeklyVolume).toLocaleString()}
+                  </td>
+                </tr>
               ))}
-            </div>
-          </Panel>
-        </div>
+          </tbody>
+        </table>
       )}
 
-      {mode === 'volume' && (
-        <Panel title="Volume load, last 7 days">
-          <table className="w-full text-sm">
-            <tbody>
-              {[...MUSCLE_GROUPS]
-                .sort((a, b) => statuses[b].weeklyVolume - statuses[a].weeklyVolume)
-                .map((m) => (
-                  <tr key={m} className="border-b border-edge/60 last:border-0">
-                    <td className="py-1.5 text-slate-300">{MUSCLE_LABELS[m]}</td>
-                    <td className="py-1.5 text-right tabular-nums text-slate-400">
-                      {Math.round(statuses[m].weeklyVolume).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </Panel>
-      )}
-
-      {selected && (
+      {sheetFor && (
         <MuscleDetailSheet
-          muscle={selected}
-          status={statuses[selected]}
+          muscle={sheetFor}
+          status={statuses[sheetFor]}
           store={store}
+          theme={theme}
           onLogExercise={(id) => {
-            setSelected(null);
+            setSheetFor(null);
             onLogExercise(id);
           }}
-          onClose={() => setSelected(null)}
+          onClose={() => setSheetFor(null)}
         />
       )}
     </div>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function FigurePane({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-edge bg-panel p-3">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        {title}
-      </h2>
-      {children}
-    </section>
+    <div>
+      <p className="eyebrow mb-1 text-center">{label}</p>
+      <div className="h-[400px]">{children}</div>
+    </div>
+  );
+}
+
+function MuscleCard({
+  muscle,
+  status,
+  theme,
+  selected,
+  onClick,
+}: {
+  muscle: MuscleGroup;
+  status: MuscleStatus;
+  theme: Theme;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const color = recoveryColor(status, theme);
+  return (
+    <button
+      onClick={onClick}
+      aria-label={`${MUSCLE_LABELS[muscle]} — ${recoveryLabel(status)}, ${formatRestRemaining(status)}`}
+      className={`w-[150px] shrink-0 rounded-inner bg-surface p-[14px] text-left transition-colors duration-100 ${
+        selected ? 'border-[1.5px] border-accent-600' : 'border-[1.5px] border-transparent'
+      }`}
+    >
+      <span className="flex items-center gap-1.5">
+        <span
+          className="inline-block h-[10px] w-[10px] rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <span className="text-[11px] text-accent-700 dark:text-accent-300">
+          {recoveryLabel(status)}
+        </span>
+      </span>
+      <span className="font-display mt-1 block truncate text-[19px]">{MUSCLE_LABELS[muscle]}</span>
+      <span className="block text-[12px] text-[color:var(--muted)]">
+        {formatRestRemaining(status)}
+      </span>
+      <span className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-bg">
+        <span
+          className="block h-full rounded-full"
+          style={{
+            width: `${Math.round(status.recoveryPct * 100)}%`,
+            backgroundColor: color,
+          }}
+        />
+      </span>
+    </button>
   );
 }

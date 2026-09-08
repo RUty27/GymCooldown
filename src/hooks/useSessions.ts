@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EXERCISES } from '../data/exercises';
 import { clampToNow } from '../lib/datetime';
 import { emptyData, loadData, saveData } from '../lib/storage';
-import type { AppData, Exercise, LoggedExercise, Session, Unit } from '../types';
+import type { AppData, Exercise, LoggedExercise, Session, ThemePreference, Unit } from '../types';
 
 export interface Store {
   data: AppData;
@@ -12,6 +12,7 @@ export interface Store {
   updateSession: (id: string, patch: Partial<Omit<Session, 'id'>>) => void;
   deleteSession: (id: string) => void;
   setUnit: (unit: Unit) => void;
+  setTheme: (theme: ThemePreference) => void;
   addCustomExercise: (exercise: Omit<Exercise, 'id'>) => Exercise;
   deleteCustomExercise: (id: string) => void;
   /** How many saved sessions reference an exercise — used to warn before deleting one. */
@@ -73,6 +74,10 @@ export function useSessions(): Store {
     setData((d) => ({ ...d, settings: { ...d.settings, unit } }));
   }, []);
 
+  const setTheme = useCallback((theme: ThemePreference) => {
+    setData((d) => ({ ...d, settings: { ...d.settings, theme } }));
+  }, []);
+
   const addCustomExercise = useCallback((exercise: Omit<Exercise, 'id'>) => {
     const slug = exercise.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const created: Exercise = {
@@ -118,6 +123,7 @@ export function useSessions(): Store {
     updateSession,
     deleteSession,
     setUnit,
+    setTheme,
     addCustomExercise,
     deleteCustomExercise,
     sessionsUsing,

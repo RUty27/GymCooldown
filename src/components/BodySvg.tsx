@@ -10,13 +10,15 @@ export interface BodyProps {
   fillFor: (muscle: MuscleGroup) => string;
   onSelect: (muscle: MuscleGroup) => void;
   selected: MuscleGroup | null;
+  theme: 'light' | 'dark';
 }
 
 const VIEW_BOX = '0 0 200 470';
 
-/** Skin/outline colours for the non-interactive parts of the figure. */
-const OUTLINE = '#2b3a4d';
-const INERT = '#1b242f';
+/** Outline and non-interactive fills, per theme. */
+const OUTLINE = { light: 'rgba(32,30,29,.18)', dark: 'rgba(245,234,216,.18)' } as const;
+const SELECTED = { light: '#201e1d', dark: '#f5ead8' } as const;
+const INERT = { light: '#dcd3c4', dark: '#322d26' } as const;
 
 function Region({
   muscle,
@@ -24,6 +26,7 @@ function Region({
   fillFor,
   onSelect,
   selected,
+  theme,
 }: BodyProps & { muscle: MuscleGroup; children: ReactNode }) {
   const isSelected = selected === muscle;
   return (
@@ -40,7 +43,7 @@ function Region({
       }}
       className="cursor-pointer outline-none transition-opacity hover:opacity-80"
       fill={fillFor(muscle)}
-      stroke={isSelected ? '#f8fafc' : OUTLINE}
+      stroke={isSelected ? SELECTED[theme] : OUTLINE[theme]}
       strokeWidth={isSelected ? 2.5 : 1}
     >
       {children}
@@ -49,9 +52,9 @@ function Region({
 }
 
 /** Head, neck, hands and feet — drawn but not trackable. */
-function Inert({ back = false }: { back?: boolean }) {
+function Inert({ back = false, theme }: { back?: boolean; theme: 'light' | 'dark' }) {
   return (
-    <g fill={INERT} stroke={OUTLINE} strokeWidth={1}>
+    <g fill={INERT[theme]} stroke={OUTLINE[theme]} strokeWidth={1}>
       <circle cx={100} cy={34} r={21} />
       <path d="M88,50 L88,66 Q100,74 112,66 L112,50 Z" />
       {/* hands */}
@@ -74,7 +77,7 @@ function Inert({ back = false }: { back?: boolean }) {
 export function BodyFront(props: BodyProps) {
   return (
     <svg viewBox={VIEW_BOX} className="h-full w-full" aria-label="Front of body">
-      <Inert />
+      <Inert theme={props.theme} />
       <Region {...props} muscle="traps">
         <path d="M80,66 Q100,58 120,66 L136,86 Q100,74 64,86 Z" />
       </Region>
@@ -120,7 +123,7 @@ export function BodyFront(props: BodyProps) {
 export function BodyBack(props: BodyProps) {
   return (
     <svg viewBox={VIEW_BOX} className="h-full w-full" aria-label="Back of body">
-      <Inert back />
+      <Inert back theme={props.theme} />
       <Region {...props} muscle="traps">
         <path d="M100,58 L132,82 L118,132 L100,122 L82,132 L68,82 Z" />
       </Region>

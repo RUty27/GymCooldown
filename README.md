@@ -44,7 +44,25 @@ sets and volume this week, what last hit it, and what else trains it.
 **History** — every session, expandable to the set level, with per-session
 tonnage.
 
-**Settings** — kg/lb toggle, JSON export/import, clear all data.
+**You** — kg/lb toggle, a Light/Dark/System theme control, your custom
+exercises, and JSON export/import.
+
+## Design
+
+The interface uses the **Organic** design system: a warm cream ground with a
+terracotta accent and a sage second accent, Caprasimo for display type over
+Figtree for body text. Both fonts are **self-hosted** in `public/fonts/` and
+precached by the service worker — the app promises to work in a gym basement
+with no signal, so it makes no request to Google Fonts.
+
+Light and dark themes both ship. The preference lives in
+`settings.theme` (`light` / `dark` / `system`, defaulting to following your
+OS) and is applied as a `dark` class on `<html>`.
+
+Heatmap colours are validated for contrast and colour-vision separation
+against both grounds — see the notes at the top of `src/lib/palette.ts`, which
+record two places where the design's proposed values failed and what replaced
+them.
 
 ## Data and privacy
 
@@ -99,8 +117,11 @@ src/lib/volume.ts         per-muscle volume load from logged sets
 src/lib/recovery.ts       recovery-time model and per-muscle status
 src/lib/restTimer.ts      between-set rest recommendations
 src/lib/palette.ts        heatmap colours (validated for contrast + CVD)
+src/lib/theme.ts          light/dark/system resolution
 src/lib/storage.ts        versioned localStorage persistence
-src/components/BodySvg.tsx  the front/back figures
+src/components/BodySvg.tsx        the front/back figures
+src/components/NumberPadSheet.tsx the keypad that replaced the ± steppers
+src/components/ui.tsx             shared Organic primitives (cards, pills, sheets)
 ```
 
 ### Adding an exercise

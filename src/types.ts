@@ -74,13 +74,16 @@ export interface Session {
 
 export type Unit = 'kg' | 'lb';
 
+export type ThemePreference = 'light' | 'dark' | 'system';
+
 export interface Settings {
   unit: Unit;
+  theme: ThemePreference;
 }
 
 /** Everything persisted to disk, wrapped with a version for future migrations. */
 export interface AppData {
-  version: 1;
+  version: 2;
   sessions: Session[];
   settings: Settings;
   /** User-defined exercises, merged over the built-in library. */

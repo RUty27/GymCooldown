@@ -63,17 +63,17 @@ export function CustomExerciseForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-ink">
-      <header className="flex items-center justify-between border-b border-edge p-3">
+    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+      <header className="flex items-center justify-between border-b border-[color:var(--divider)] p-3">
         <h2 className="font-semibold">Add your own exercise</h2>
-        <button onClick={onClose} className="px-2 py-1 text-sm text-slate-400">
+        <button onClick={onClose} className="px-2 py-1 text-sm text-[color:var(--muted)]">
           Cancel
         </button>
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <div>
-          <label htmlFor="cx-name" className="mb-1 block text-xs text-slate-500">
+          <label htmlFor="cx-name" className="mb-1 block text-xs text-[color:var(--muted)]">
             Name — copy what is written on the machine
           </label>
           <input
@@ -82,12 +82,12 @@ export function CustomExerciseForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Fixed Pulldown"
-            className="w-full rounded-lg border border-edge bg-panel px-3 py-2.5 text-slate-100 placeholder:text-slate-500"
+            className="w-full rounded-full border border-[color:var(--divider)] bg-surface px-4 py-3 text-ink placeholder:text-[color:var(--muted)]"
           />
         </div>
 
         <div>
-          <span className="mb-1 block text-xs text-slate-500">Equipment</span>
+          <span className="mb-1 block text-xs text-[color:var(--muted)]">Equipment</span>
           <div className="flex flex-wrap gap-1.5">
             {EQUIPMENT.map((eq) => (
               <button
@@ -95,8 +95,8 @@ export function CustomExerciseForm({
                 onClick={() => setEquipment(eq)}
                 className={`rounded-full border px-3 py-1.5 text-xs capitalize ${
                   equipment === eq
-                    ? 'border-sky-600 bg-sky-900/40 text-sky-300'
-                    : 'border-edge text-slate-400'
+                    ? 'border-accent bg-accent-100 text-accent-800 dark:bg-accent-800 dark:text-accent-300'
+                    : 'border-[color:var(--divider)] text-[color:var(--muted)]'
                 }`}
               >
                 {eq}
@@ -119,32 +119,32 @@ export function CustomExerciseForm({
           onToggle={(m) => toggle(secondary, setSecondary, primary, setPrimary, m)}
         />
 
-        <label className="flex items-start gap-3 rounded-lg border border-edge bg-panel p-3">
+        <label className="flex items-start gap-3 rounded-inner bg-surface p-4">
           <input
             type="checkbox"
             checked={compound}
             onChange={(e) => setCompound(e.target.checked)}
             className="mt-0.5 h-4 w-4"
           />
-          <span className="text-sm text-slate-300">
+          <span className="text-sm text-ink">
             Uses several joints at once
-            <span className="mt-0.5 block text-xs text-slate-500">
+            <span className="mt-0.5 block text-xs text-[color:var(--muted)]">
               Like a press, row or squat rather than a curl. These need longer rest.
             </span>
           </span>
         </label>
 
         {error && (
-          <p className="rounded-lg border border-red-900 bg-red-950/50 p-3 text-sm text-red-300">
+          <p className="rounded-panel border border-accent-700 bg-accent-100 p-3 text-[13px] text-accent-700 dark:bg-accent-900 dark:text-accent-300">
             {error}
           </p>
         )}
       </div>
 
-      <div className="border-t border-edge p-4 pb-8">
+      <div className="border-t border-[color:var(--divider)] p-4 pb-8">
         <button
           onClick={submit}
-          className="w-full rounded-lg bg-slate-100 py-3 font-semibold text-slate-900"
+          className="font-display w-full rounded-full bg-accent py-3 text-[16px] text-bg"
         >
           Save exercise
         </button>
@@ -166,8 +166,8 @@ function MusclePicker({
 }) {
   return (
     <div>
-      <span className="block text-xs text-slate-500">{title}</span>
-      <span className="mb-1.5 block text-[11px] text-slate-600">{hint}</span>
+      <span className="block text-xs text-[color:var(--muted)]">{title}</span>
+      <span className="mb-1.5 block text-[11px] text-[color:var(--muted)]">{hint}</span>
       <div className="flex flex-wrap gap-1.5">
         {MUSCLE_GROUPS.map((m) => (
           <button
@@ -176,8 +176,8 @@ function MusclePicker({
             aria-pressed={selected.includes(m)}
             className={`rounded-full border px-2.5 py-1.5 text-xs ${
               selected.includes(m)
-                ? 'border-sky-600 bg-sky-900/40 text-sky-300'
-                : 'border-edge text-slate-400'
+                ? 'border-accent bg-accent-100 text-accent-800 dark:bg-accent-800 dark:text-accent-300'
+                : 'border-[color:var(--divider)] text-[color:var(--muted)]'
             }`}
           >
             {MUSCLE_LABELS[m]}

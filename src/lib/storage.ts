@@ -3,9 +3,9 @@ import type { AppData } from '../types';
 const KEY = 'gymcooldown:data:v1';
 
 export const emptyData = (): AppData => ({
-  version: 1,
+  version: 2,
   sessions: [],
-  settings: { unit: 'kg' },
+  settings: { unit: 'kg', theme: 'system' },
   customExercises: [],
 });
 
@@ -17,10 +17,15 @@ export function parseData(raw: string | null): AppData {
     if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.sessions)) {
       return emptyData();
     }
+    // v1 had no `theme`; migrating it forward defaults to following the OS.
+    const theme = parsed.settings?.theme;
     return {
-      version: 1,
+      version: 2,
       sessions: parsed.sessions,
-      settings: { unit: parsed.settings?.unit === 'lb' ? 'lb' : 'kg' },
+      settings: {
+        unit: parsed.settings?.unit === 'lb' ? 'lb' : 'kg',
+        theme: theme === 'light' || theme === 'dark' ? theme : 'system',
+      },
       customExercises: Array.isArray(parsed.customExercises) ? parsed.customExercises : [],
     };
   } catch {

@@ -3,33 +3,34 @@ import { BodyHeatmap } from './components/BodyHeatmap';
 import { History } from './components/History';
 import { LogWorkout } from './components/LogWorkout';
 import { SettingsTab } from './components/Settings';
+import { useResolvedTheme } from './hooks/useResolvedTheme';
 import { useSessions } from './hooks/useSessions';
+import { toDisplay } from './lib/units';
+import { exerciseTonnage } from './lib/volume';
 import type { LoggedExercise } from './types';
 
 const TABS = [
-  { id: 'log', label: 'Log', icon: '📝' },
-  { id: 'body', label: 'Body', icon: '🧍' },
-  { id: 'history', label: 'History', icon: '📅' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
+  { id: 'log', label: 'Log' },
+  { id: 'body', label: 'Body' },
+  { id: 'history', label: 'History' },
+  { id: 'you', label: 'You' },
 ] as const;
 
-type TabId = (typeof TABS)[number]['id'];
+export type TabId = (typeof TABS)[number]['id'];
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('log');
   const store = useSessions();
+  const theme = useResolvedTheme(store.data.settings.theme);
 
   // The in-progress workout lives here rather than inside the Log tab, because
   // that tab unmounts when you switch away — mid-session you can check the Body
   // tab for what is recovered, or log from a sore muscle, without losing it.
   const [draft, setDraft] = useState<LoggedExercise[]>([]);
   const [notes, setNotes] = useState('');
-  // null means "stamp it when I finish"; a value means a deliberately chosen date.
   const [workoutDate, setWorkoutDate] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  // Tapping an exercise on a muscle's detail sheet drops it into today's
-  // workout and takes you to the Log tab to fill in the sets.
   const logExercise = useCallback((exerciseId: string) => {
     setDraft((d) =>
       d.some((x) => x.exerciseId === exerciseId) ? d : [...d, { exerciseId, sets: [] }],
@@ -44,45 +45,87 @@ export default function App() {
     return () => clearTimeout(t);
   }, [highlightId]);
 
+  const workout = { draft, setDraft, notes, setNotes, workoutDate, setWorkoutDate, highlightId };
+
+  const screens = {
+    log: <LogWorkout store={store} workout={workout} />,
+    body: <BodyHeatmap store={store} theme={theme} onLogExercise={logExercise} />,
+    history: <History store={store} />,
+    you: <SettingsTab store={store} />,
+  };
+
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col">
-      <header className="sticky top-0 z-30 border-b border-edge bg-ink/95 px-4 py-3 backdrop-blur">
-        <h1 className="text-lg font-bold tracking-tight">
-          Gym<span className="text-sky-400">Cooldown</span>
+    // One column on a phone (main, then the nav); a row on desktop (rail, then
+    // main). The screen tree is instantiated once either way — rendering two
+    // shells would duplicate every component's state and DOM.
+    <div className="flex min-h-full flex-col lg:flex-row">
+      <aside className="hidden w-[210px] flex-none flex-col bg-surface px-[18px] py-6 lg:flex">
+        <h1 className="font-display mb-6 text-[22px]">
+          Gym<span className="text-accent-700 dark:text-accent-300">Cooldown</span>
         </h1>
-        <p className="text-xs text-slate-500">{TABS.find((t) => t.id === tab)?.label}</p>
-      </header>
+        <div className="flex flex-col gap-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              aria-current={tab === t.id ? 'page' : undefined}
+              className={`rounded-full px-[18px] py-[10px] text-left text-[15px] transition-colors duration-100 ${
+                tab === t.id
+                  ? 'font-display bg-accent text-bg'
+                  : 'text-[color:var(--muted)] hover:bg-[color:var(--row-line)]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <WeekCard store={store} />
+      </aside>
 
-      <main className="flex-1 px-3 pt-3">
-        {tab === 'log' && (
-          <LogWorkout
-            store={store}
-            workout={{ draft, setDraft, notes, setNotes, workoutDate, setWorkoutDate, highlightId }}
-          />
-        )}
-        {tab === 'body' && <BodyHeatmap store={store} onLogExercise={logExercise} />}
-        {tab === 'history' && <History store={store} />}
-        {tab === 'settings' && <SettingsTab store={store} />}
-      </main>
+      <main className="mx-auto w-full max-w-lg flex-1 lg:max-w-[1200px]">{screens[tab]}</main>
 
-      <nav className="sticky bottom-0 z-30 grid grid-cols-4 border-t border-edge bg-panel pb-[env(safe-area-inset-bottom)]">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            aria-current={tab === t.id ? 'page' : undefined}
-            className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] transition-colors ${
-              tab === t.id ? 'text-sky-400' : 'text-slate-500'
-            }`}
-          >
-            <span className="text-lg leading-none">{t.icon}</span>
-            {t.label}
-            {t.id === 'log' && draft.length > 0 && (
-              <span className="sr-only">{draft.length} exercises in progress</span>
-            )}
-          </button>
-        ))}
+      <nav className="sticky bottom-0 z-30 bg-surface px-3 pb-[22px] pt-[10px] lg:hidden">
+        <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              aria-current={tab === t.id ? 'page' : undefined}
+              className={`rounded-full py-[9px] text-[13px] transition-colors duration-100 ${
+                tab === t.id ? 'font-display bg-accent text-bg' : 'text-[color:var(--muted)]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </nav>
+    </div>
+  );
+}
+
+/** Pinned to the bottom of the desktop rail. */
+function WeekCard({ store }: { store: ReturnType<typeof useSessions> }) {
+  const unit = store.data.settings.unit;
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recent = store.data.sessions.filter((s) => {
+    const t = Date.parse(s.date);
+    return !Number.isNaN(t) && t >= weekAgo;
+  });
+  const tonnage = recent.reduce(
+    (n, s) => n + s.exercises.reduce((m, e) => m + exerciseTonnage(e.sets), 0),
+    0,
+  );
+
+  return (
+    <div className="mt-auto rounded-panel bg-bg p-4">
+      <p className="eyebrow">This week</p>
+      <p className="font-display mt-1 text-[28px] text-accent-600 dark:text-accent-400">
+        {Math.round(toDisplay(tonnage, unit)).toLocaleString()}
+      </p>
+      <p className="text-[12px] text-[color:var(--muted)]">
+        {unit} across {recent.length} session{recent.length === 1 ? '' : 's'}
+      </p>
     </div>
   );
 }
