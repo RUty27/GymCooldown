@@ -100,7 +100,7 @@ export function VoiceLogger({
   const unit = store.data.settings.unit;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+    <div className="safe-top fixed inset-0 z-50 flex flex-col bg-bg">
       <header className="flex items-center justify-between border-b border-[color:var(--divider)] p-3">
         <h2 className="font-semibold">Log by voice</h2>
         <button onClick={onClose} className="px-2 py-1 text-sm text-[color:var(--muted)]">

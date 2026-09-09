@@ -110,7 +110,7 @@ export function Sheet({
       role="presentation"
     >
       <div
-        className="sheet-in max-h-[85vh] w-full overflow-y-auto rounded-t-sheet bg-surface px-[18px] pb-[26px] pt-4 shadow-sheet"
+        className="sheet-in safe-bottom-sheet max-h-[85vh] w-full overflow-y-auto rounded-t-sheet bg-surface px-[18px] pt-4 shadow-sheet"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={ariaLabel}

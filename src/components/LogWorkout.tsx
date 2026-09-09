@@ -573,7 +573,7 @@ function ExercisePicker({
   }, [query, store.exercises]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-bg">
+    <div className="safe-top fixed inset-0 z-40 flex flex-col bg-bg">
       <div className="flex items-center gap-2 border-b border-[color:var(--divider)] p-3">
         <div className="relative flex-1">
           <input

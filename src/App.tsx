@@ -59,7 +59,7 @@ export default function App() {
     // main). The screen tree is instantiated once either way — rendering two
     // shells would duplicate every component's state and DOM.
     <div className="flex min-h-full flex-col lg:flex-row">
-      <aside className="hidden w-[210px] flex-none flex-col bg-surface px-[18px] py-6 lg:flex">
+      <aside className="safe-top hidden w-[210px] flex-none flex-col bg-surface px-[18px] py-6 lg:flex">
         <h1 className="font-display mb-6 text-[22px]">
           Gym<span className="text-accent-700 dark:text-accent-300">Cooldown</span>
         </h1>
@@ -82,9 +82,9 @@ export default function App() {
         <WeekCard store={store} />
       </aside>
 
-      <main className="mx-auto w-full max-w-lg flex-1 lg:max-w-[1200px]">{screens[tab]}</main>
+      <main className="safe-top mx-auto w-full max-w-lg flex-1 lg:max-w-[1200px]">{screens[tab]}</main>
 
-      <nav className="sticky bottom-0 z-30 bg-surface px-3 pb-[22px] pt-[10px] lg:hidden">
+      <nav className="safe-bottom-nav sticky bottom-0 z-30 bg-surface px-3 pt-[10px] lg:hidden">
         <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
           {TABS.map((t) => (
             <button
