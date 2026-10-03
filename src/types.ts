@@ -81,6 +81,10 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 export interface Settings {
   unit: Unit;
   theme: ThemePreference;
+  /** Where "Book a slot" goes. Falls back to the gym's site. */
+  bookUrl?: string;
+  /** Link that opens the gym door — usually the gym app's deep link. */
+  doorUrl?: string;
 }
 
 /** Everything persisted to disk, wrapped with a version for future migrations. */

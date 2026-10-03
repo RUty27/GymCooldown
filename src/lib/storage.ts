@@ -1,4 +1,5 @@
 import type { AppData } from '../types';
+import { sanitizeLink } from './gymLinks';
 
 const KEY = 'gymcooldown:data:v1';
 
@@ -25,6 +26,8 @@ export function parseData(raw: string | null): AppData {
       settings: {
         unit: parsed.settings?.unit === 'lb' ? 'lb' : 'kg',
         theme: theme === 'light' || theme === 'dark' ? theme : 'system',
+        ...(sanitizeLink(parsed.settings?.bookUrl) && { bookUrl: sanitizeLink(parsed.settings?.bookUrl) }),
+        ...(sanitizeLink(parsed.settings?.doorUrl) && { doorUrl: sanitizeLink(parsed.settings?.doorUrl) }),
       },
       customExercises: Array.isArray(parsed.customExercises) ? parsed.customExercises : [],
     };

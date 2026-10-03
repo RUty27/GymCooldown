@@ -8,6 +8,7 @@ import {
   shiftDays,
   toLocalInputValue,
 } from '../lib/datetime';
+import { DEFAULT_BOOK_URL } from '../lib/gymLinks';
 import { formatRestRemaining, muscleStatus } from '../lib/recovery';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
 import { formatWeight, fromDisplay, toDisplay } from '../lib/units';
@@ -122,6 +123,8 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
 
       <div className="lg:grid lg:grid-cols-[1.3fr_1fr] lg:items-start lg:gap-6">
       <div className="flex flex-col gap-[14px]">
+        <GymAccess bookUrl={store.data.settings.bookUrl} doorUrl={store.data.settings.doorUrl} />
+
         {draft.length === 0 && (
           <div className="rounded-card border-[1.5px] border-dashed border-[color:var(--dashed)] p-6 text-center text-[14px] text-[color:var(--muted)]">
             No exercises yet. Add what you are training today.
@@ -662,6 +665,33 @@ function ExercisePicker({
           }}
           onClose={() => setCreating(false)}
         />
+      )}
+    </div>
+  );
+}
+
+/** Shortcuts out to the gym's own booking page and door unlock. */
+function GymAccess({ bookUrl, doorUrl }: { bookUrl?: string; doorUrl?: string }) {
+  const btn =
+    'font-display flex-1 rounded-full py-3 text-center text-[14px] ';
+  return (
+    <div className="flex gap-2">
+      <a
+        href={bookUrl ?? DEFAULT_BOOK_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={btn + 'border-[1.5px] border-accent text-accent-700 dark:text-accent-300'}
+      >
+        Book a slot
+      </a>
+      {doorUrl ? (
+        <a href={doorUrl} className={btn + 'bg-accent text-bg'}>
+          Open door
+        </a>
+      ) : (
+        <span className={btn + 'border border-dashed border-[color:var(--dashed)] text-[color:var(--muted)]'}>
+          Set door link in You
+        </span>
       )}
     </div>
   );

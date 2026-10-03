@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Store } from '../hooks/useSessions';
+import { DEFAULT_BOOK_URL, sanitizeLink } from '../lib/gymLinks';
 import { clearPhotos } from '../lib/photos';
 import { parseData } from '../lib/storage';
 import { CustomExerciseForm } from './CustomExerciseForm';
@@ -70,6 +71,8 @@ export function SettingsTab({ store }: { store: Store }) {
             ]}
           />
         </Card>
+
+        <GymLinksCard store={store} />
 
         <Card>
           <h2 className="font-display mb-2 text-[17px]">
@@ -181,5 +184,33 @@ export function SettingsTab({ store }: { store: Store }) {
         />
       )}
     </div>
+  );
+}
+
+function GymLinksCard({ store }: { store: Store }) {
+  const { bookUrl, doorUrl } = store.data.settings;
+  const [book, setBook] = useState(bookUrl ?? '');
+  const [door, setDoor] = useState(doorUrl ?? '');
+  const bad = (v: string) => v.trim() !== '' && !sanitizeLink(v);
+  const input =
+    'mt-1 w-full rounded-full border border-[color:var(--divider)] bg-bg px-4 py-2.5 text-[14px] text-ink placeholder:text-[color:var(--muted)]';
+
+  return (
+    <Card>
+      <h2 className="font-display mb-2 text-[17px]">Gym access</h2>
+      <label className="eyebrow block" htmlFor="book-url">Booking link</label>
+      <input id="book-url" value={book} onChange={(e) => setBook(e.target.value)} onBlur={() => !bad(book) && !bad(door) && store.setGymLinks({ bookUrl: book, doorUrl: door })} placeholder={DEFAULT_BOOK_URL} inputMode="url" autoCapitalize="none" className={input} />
+      <label className="eyebrow mt-3 block" htmlFor="door-url">Open-door link</label>
+      <input id="door-url" value={door} onChange={(e) => setDoor(e.target.value)} onBlur={() => !bad(book) && !bad(door) && store.setGymLinks({ bookUrl: book, doorUrl: door })} placeholder="Paste your gym app's door link" inputMode="url" autoCapitalize="none" className={input} />
+      {(bad(book) || bad(door)) && (
+        <p className="mt-2 text-[12px] text-accent-700 dark:text-accent-300">
+          Links need a scheme, like https:// — this one was not saved.
+        </p>
+      )}
+      <p className="mt-2 text-[12px] text-[color:var(--muted)]">
+        These buttons open your gym's own site or app; booking and the door unlock happen there,
+        not in GymCooldown.
+      </p>
+    </Card>
   );
 }
