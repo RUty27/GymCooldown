@@ -62,6 +62,8 @@ export interface SetEntry {
 export interface LoggedExercise {
   exerciseId: string;
   sets: SetEntry[];
+  /** Exercises sharing an id were performed back to back as a superset. */
+  supersetId?: string;
 }
 
 export interface Session {

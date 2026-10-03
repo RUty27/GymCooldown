@@ -7,6 +7,7 @@ import {
   toLocalInputValue,
 } from '../lib/datetime';
 import { formatWeight, toDisplay } from '../lib/units';
+import { supersetLabels } from '../lib/superset';
 import { exerciseTonnage, sessionVolumeByMuscle } from '../lib/volume';
 import { EmptyPanel, SecondaryButton, Tag } from './ui';
 import { MUSCLE_LABELS, type MuscleGroup } from '../types';
@@ -93,9 +94,17 @@ export function History({ store }: { store: Store }) {
                     <ul className="mt-3 flex flex-col gap-2.5">
                       {s.exercises.map((le, i) => {
                         const ex = store.lookup(le.exerciseId);
+                        const label = le.supersetId ? supersetLabels(s.exercises).get(le.supersetId) : undefined;
                         return (
-                          <li key={i}>
-                            <p className="text-[14px] font-semibold">{ex?.name ?? le.exerciseId}</p>
+                          <li key={i} className={label ? 'border-l-2 border-accent pl-3' : undefined}>
+                            <p className="text-[14px] font-semibold">
+                              {ex?.name ?? le.exerciseId}
+                              {label && (
+                                <span className="ml-2 text-[11px] font-normal text-accent-700 dark:text-accent-300">
+                                  Superset {label}
+                                </span>
+                              )}
+                            </p>
                             <p className="text-[12px] tabular-nums text-[color:var(--muted)]">
                               {le.sets
                                 .map((set) => `${set.reps} × ${formatWeight(set.weight, unit)}`)

@@ -11,6 +11,7 @@ import {
 import { formatRestRemaining, muscleStatus } from '../lib/recovery';
 import { restBetweenSets, typicalReps } from '../lib/restTimer';
 import { formatWeight, fromDisplay, toDisplay } from '../lib/units';
+import { isLinkedToNext, linkWithNext, normalizeSupersets, supersetLabels, unlinkFromNext } from '../lib/superset';
 import { exerciseTonnage } from '../lib/volume';
 import { CustomExerciseForm } from './CustomExerciseForm';
 import { ExercisePhoto } from './ExercisePhoto';
@@ -46,6 +47,7 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const unit = store.data.settings.unit;
+  const labels = useMemo(() => supersetLabels(draft), [draft]);
   const totalSets = draft.reduce((n, d) => n + d.sets.length, 0);
   const totalTonnage = draft.reduce((n, d) => n + exerciseTonnage(d.sets), 0);
 
@@ -62,7 +64,10 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
     setDraft((d) => d.map((x) => (x.exerciseId === exerciseId ? { ...x, sets } : x)));
 
   const removeExercise = (exerciseId: string) =>
-    setDraft((d) => d.filter((x) => x.exerciseId !== exerciseId));
+    setDraft((d) => normalizeSupersets(d.filter((x) => x.exerciseId !== exerciseId)));
+
+  const toggleSuperset = (index: number) =>
+    setDraft((d) => (isLinkedToNext(d, index) ? unlinkFromNext(d, index) : linkWithNext(d, index)));
 
   /** Merge voice-parsed exercises in, appending sets to anything already logged. */
   const addFromVoice = (entries: LoggedExercise[]) => {
@@ -79,7 +84,7 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
   };
 
   const finish = () => {
-    const withSets = draft.filter((d) => d.sets.length > 0);
+    const withSets = normalizeSupersets(draft.filter((d) => d.sets.length > 0));
     if (withSets.length === 0) return;
     store.addSession(withSets, notes.trim() || undefined, workoutDate ?? undefined);
     setDraft([]);
@@ -123,13 +128,15 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
           </div>
         )}
 
-        {draft.map((logged) => {
+        {draft.map((logged, index) => {
           const ex = store.lookup(logged.exerciseId);
           if (!ex) return null;
+          const linked = isLinkedToNext(draft, index);
           return (
+            <div key={logged.exerciseId} className="flex flex-col gap-[14px]">
             <ExerciseCard
-              key={logged.exerciseId}
               exercise={ex}
+              supersetLabel={logged.supersetId ? labels.get(logged.supersetId) : undefined}
               logged={logged}
               unit={unit}
               store={store}
@@ -139,6 +146,19 @@ export function LogWorkout({ store, workout }: { store: Store; workout: WorkoutD
               onChange={(sets) => updateSets(logged.exerciseId, sets)}
               onRemove={() => removeExercise(logged.exerciseId)}
             />
+            {index < draft.length - 1 && (
+              <button
+                onClick={() => toggleSuperset(index)}
+                className={`font-display -my-1 self-center rounded-full px-4 py-1.5 text-[12px] ${
+                  linked
+                    ? 'bg-accent text-bg'
+                    : 'border border-dashed border-[color:var(--dashed)] text-[color:var(--muted)]'
+                }`}
+              >
+                {linked ? '🔗 Superset · tap to unlink' : '＋ Superset with next'}
+              </button>
+            )}
+            </div>
           );
         })}
 
@@ -314,10 +334,12 @@ function ExerciseCard({
   store,
   expanded,
   highlight,
+  supersetLabel,
   onExpand,
   onChange,
   onRemove,
 }: {
+  supersetLabel?: string;
   exercise: Exercise;
   logged: LoggedExercise;
   unit: Unit;
@@ -359,6 +381,7 @@ function ExerciseCard({
               {logged.sets.length === 0
                 ? `No sets yet · rest ${rest.label}`
                 : `${logged.sets.length} set${logged.sets.length === 1 ? '' : 's'} · rest ${rest.label}`}
+              {supersetLabel && ` · Superset ${supersetLabel}`}
             </p>
           </div>
           <button
@@ -390,6 +413,7 @@ function ExerciseCard({
             ))}
             <Tag tone="neutral">{exercise.equipment}</Tag>
             <Tag tone="accent2">Rest {rest.label}</Tag>
+            {supersetLabel && <Tag tone="accent">Superset {supersetLabel}</Tag>}
           </div>
         </div>
         <button
